@@ -38,7 +38,7 @@ yarn-error.log*
 #Extension App-file
 *.app
 # env file
-.env
+backend/.env
 #Rapid Application Development File
 rad.json
 #Translation Base-file
