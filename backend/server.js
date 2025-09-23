@@ -104,7 +104,26 @@ FINAL BODY PARAGRAPH
 CLOSING
 - End with: “Sincerely,”
 - Leave space for signature.
-- Print full name: ${personalInfo.name}`;
+- Print full name: ${personalInfo.name}
+
+EXAMPLE VARIABLE USAGE
+- ${personalInfo.name} → Daniel A. Stevens
+
+- ${personalInfo.email} → daniel.stevens@email.com
+
+- ${personalInfo.phone} → (330) 672-2360
+
+- ${personalInfo.address} → 138 Water Street, Kent, Ohio 44240
+
+- ${receiverInfo} → Ms. Anne E. Little, Director of Athletics, Winston-Salem State University, etc.
+
+- ${jobDescription} → Assistant Athletic Director for Sports Information, source = “university career   center”
+
+- ${resume} → List of experiences and skills from the CV
+
+- ${answers} → Motivation, relevant experience, unique value, challenges, growth
+
+This should guarantee a standing out and professional cover letter.`;
 }
 
 // Hugging Face API call
