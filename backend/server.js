@@ -1,59 +1,45 @@
 const express = require('express');
 const cors = require('cors');
 const { OpenAI } = require('openai');
+const serverless = require('serverless-http');
+
 require('dotenv').config();
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-// Initialize Hugging Face client
+// Hugging Face client
 const client = new OpenAI({
   baseURL: "https://router.huggingface.co/v1",
   apiKey: process.env.HF_TOKEN,
 });
-const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors()); // Allow frontend to call backend
-app.use(express.json()); // Parse JSON requests
-
-// Test endpoint
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
+  res.json({ message: 'Backend is working on Vercel!' });
 });
 
-// Generate cover letter endpoint
 app.post('/api/generate-cover-letter', async (req, res) => {
   try {
-    const { personalInfo, receiverInfo, jobDescription, resume, preferences, answers,} = req.body;
+    const { personalInfo, receiverInfo, jobDescription, resume, preferences, answers } = req.body;
 
-    // Create prompt for AI
-    const prompt = createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers,);
-
-    // Call Hugging Face API
+    const prompt = createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers);
     const coverLetter = await generateWithHuggingFace(prompt);
-    
-    res.json({ 
-      success: true, 
-      coverLetter: coverLetter 
-    });
 
+    res.json({ success: true, coverLetter });
   } catch (error) {
     console.error('Error generating cover letter:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to generate cover letter' 
-    });
+    res.status(500).json({ success: false, error: 'Failed to generate cover letter' });
   }
 });
 
-function createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers,) {
-
+// Prompt creator
+function createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers) {
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
-
 
   return `You are an assistant specialized in writing professional cover letters. Follow the instructions carefully and always respect the formal structure. Use the variables provided by the user to generate a polished and tailored cover letter.
 
@@ -90,78 +76,38 @@ Instructions to Follow:
 
 HEADER & FORMATTING
 1- Sender's address: Use ${personalInfo.address} on two lines. Do not include the sender's name here.
-
 2- Date: Write this exact date: ${currentDate}
-
-3- Recipient's address: Use ${receiverInfo.name}, ${receiverInfo.title}, ${receiverInfo.company}, and      ${receiverInfo.address} (max 6 lines).
-
+3- Recipient's address: Use ${receiverInfo.name}, ${receiverInfo.title}, ${receiverInfo.company}, and ${receiverInfo.address} (max 6 lines).
 4- Salutation:
- 
    - If ${receiverInfo.name} exists → “Dear Ms./Mr. ${receiverInfo.name},”
-
-   - Else if ${receiverInfo.title} exists → “To ${receiverInfo.title},”
-
+   - Else if ${receiverInfo.title} exists → “To ${receiverInfo.title}, ”
    - Otherwise → “To whom it may concern,”
 
 INTRO PARAGRAPH
 - Begin with the phrase: “I am writing...”
-
 - State the purpose of the letter: applying for ${jobDescription.title}.
-
-- Mention the source: ${jobDescription.source} (e.g., “I became aware of the opening through…”).
-
-- Present strongest qualification: from ${resume} (e.g., “I will be graduating with a degree in…”).
-
+- Mention the source: ${jobDescription.source}.
+- Present strongest qualification from ${resume}.
 - Add motivation from ${answers.motivation}.
 
 BODY PARAGRAPH(S)
-- Organize clearly into 1-3 paragraphs:
-
-- Relevant Experience: Highlight strongest elements from ${resume} and ${answers.relevant_experience},   making connections with the job ad. Use correct past tenses (have worked, have gained, have improved,   etc.).
-
-- Unique Value: Use ${answers.unique_value} to show what sets the candidate apart.
-
-- Challenges & Growth: If ${answers.challenges} or ${answers.growth} are provided, integrate them   naturally to demonstrate resilience and ambition.
-
-- Refer to CV if necessary: “You will see in my CV that I have…”
+- Relevant Experience: Use ${answers.relevant_experience}.
+- Unique Value: Use ${answers.unique_value}.
+- Challenges & Growth: Use ${answers.challenges} and ${answers.growth}.
+- Refer to CV if necessary.
 
 FINAL BODY PARAGRAPH
-- Add a last note of motivation (optional but encouraged).
-
-- Make a call to action: request an interview/phone conversation.
-
-- Provide contact details: include ${personalInfo.phone} and ${personalInfo.email}.
-
-- Close with gratitude: “Thank you for your time and consideration.”
+- Motivation + call to action.
+- Provide contact details: ${personalInfo.phone}, ${personalInfo.email}.
+- Close with gratitude.
 
 CLOSING
 - End with: “Sincerely,”
-
 - Leave space for signature.
-
-- Print full name: ${personalInfo.name}
-
-EXAMPLE VARIABLE USAGE
-- ${personalInfo.name} → Daniel A. Stevens
-
-- ${personalInfo.email} → daniel.stevens@email.com
-
-- ${personalInfo.phone} → (330) 672-2360
-
-- ${personalInfo.address} → 138 Water Street, Kent, Ohio 44240
-
-- ${receiverInfo} → Ms. Anne E. Little, Director of Athletics, Winston-Salem State University, etc.
-
-- ${jobDescription} → Assistant Athletic Director for Sports Information, source = “university career   center”
-
-- ${resume} → List of experiences and skills from the CV
-
-- ${answers} → Motivation, relevant experience, unique value, challenges, growth
-
-This should guarantee a standing out and professional cover letter.`;
+- Print full name: ${personalInfo.name}`;
 }
 
-// Hugging Face API call using OpenAI format
+// Hugging Face API call
 async function generateWithHuggingFace(prompt) {
   try {
     const chatCompletion = await client.chat.completions.create({
@@ -169,7 +115,7 @@ async function generateWithHuggingFace(prompt) {
       messages: [
         {
           role: "system",
-          content: "You are an assistant specialized in writing professional cover letters. Follow the instructions carefully and always respect the formal structure. Use the variables provided by the user to generate a polished and tailored cover letter."
+          content: "You are an assistant specialized in writing professional cover letters."
         },
         {
           role: "user",
@@ -187,8 +133,6 @@ async function generateWithHuggingFace(prompt) {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
+//function for Vercel
 module.exports = app;
+module.exports.handler = serverless(app);
