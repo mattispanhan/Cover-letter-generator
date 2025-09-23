@@ -10,13 +10,12 @@ const CoverLetterResult = ({ formData }) => {
 
   const generateCoverLetter = async () => {
     setIsGenerating(true);
+    console.log("Sending formData:", formData);
     
     try {
-      const response = await fetch('http://localhost:5000/api/generate-cover-letter', {
+      const response = await fetch('/api/generate-cover-letter', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
