@@ -155,19 +155,36 @@ EXAMPLE VARIABLE USAGE
 async function generateWithHuggingFace(prompt) {
   try {
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct',
+      'https://router.huggingface.co/v1/chat/completions',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.HF_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ inputs: prompt })
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional cover letter writing assistant. Generate polished, formal cover letters following the exact format and structure provided in the user's instructions."
+            },
+            
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: "openai/gpt-oss-20b:nebius",
+        })
       }
     );
 
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
-    return data[0]?.generated_text || data.generated_text || 'Error generating cover letter';
+    return data.choices[0]?.message?.content || 'Error generating cover letter';
   } catch (error) {
     console.error('Hugging Face API error:', error);
     throw new Error('Failed to generate cover letter with AI');
