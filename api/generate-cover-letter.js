@@ -1,28 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-require('dotenv').config();
+// Vercel serverless function
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-const app = express();
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-const PORT = process.env.PORT || 5000;
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-// Middleware
-app.use(cors()); // Allow frontend to call backend
-app.use(express.json()); // Parse JSON requests
-
-// Test endpoint
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
-});
-
-// Generate cover letter endpoint
-app.post('/api/generate-cover-letter', async (req, res) => {
   try {
-    const { personalInfo, receiverInfo, jobDescription, resume, preferences, answers,} = req.body;
+    const { personalInfo, receiverInfo, jobDescription, resume, preferences, answers } = req.body;
 
     // Create prompt for AI
-    const prompt = createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers,);
+    const prompt = createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers);
 
     // Call Hugging Face API
     const coverLetter = await generateWithHuggingFace(prompt);
@@ -39,16 +36,14 @@ app.post('/api/generate-cover-letter', async (req, res) => {
       error: 'Failed to generate cover letter' 
     });
   }
-});
+}
 
-function createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers,) {
-
+function createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers) {
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
-
 
   return `You are an assistant specialized in writing professional cover letters. Follow the instructions carefully and always respect the formal structure. Use the variables provided by the user to generate a polished and tailored cover letter.
 
@@ -88,37 +83,37 @@ HEADER & FORMATTING
 
 2- Date: Write this exact date: ${currentDate}
 
-3- Recipient's address: Use ${receiverInfo.name}, ${receiverInfo.title}, ${receiverInfo.company}, and      ${receiverInfo.address} (max 6 lines).
+3- Recipient's address: Use ${receiverInfo.name}, ${receiverInfo.title}, ${receiverInfo.company}, and ${receiverInfo.address} (max 6 lines).
 
 4- Salutation:
  
-   - If ${receiverInfo.name} exists → “Dear Ms./Mr. ${receiverInfo.name},”
+   - If ${receiverInfo.name} exists → "Dear Ms./Mr. ${receiverInfo.name},"
 
-   - Else if ${receiverInfo.title} exists → “To ${receiverInfo.title},”
+   - Else if ${receiverInfo.title} exists → "To ${receiverInfo.title},"
 
-   - Otherwise → “To whom it may concern,”
+   - Otherwise → "To whom it may concern,"
 
 INTRO PARAGRAPH
-- Begin with the phrase: “I am writing...”
+- Begin with the phrase: "I am writing..."
 
 - State the purpose of the letter: applying for ${jobDescription.title}.
 
-- Mention the source: ${jobDescription.source} (e.g., “I became aware of the opening through…”).
+- Mention the source: ${jobDescription.source} (e.g., "I became aware of the opening through…").
 
-- Present strongest qualification: from ${resume} (e.g., “I will be graduating with a degree in…”).
+- Present strongest qualification: from ${resume} (e.g., "I will be graduating with a degree in…").
 
 - Add motivation from ${answers.motivation}.
 
 BODY PARAGRAPH(S)
 - Organize clearly into 1-3 paragraphs:
 
-- Relevant Experience: Highlight strongest elements from ${resume} and ${answers.relevant_experience},   making connections with the job ad. Use correct past tenses (have worked, have gained, have improved,   etc.).
+- Relevant Experience: Highlight strongest elements from ${resume} and ${answers.relevant_experience}, making connections with the job ad. Use correct past tenses (have worked, have gained, have improved, etc.).
 
 - Unique Value: Use ${answers.unique_value} to show what sets the candidate apart.
 
-- Challenges & Growth: If ${answers.challenges} or ${answers.growth} are provided, integrate them   naturally to demonstrate resilience and ambition.
+- Challenges & Growth: If ${answers.challenges} or ${answers.growth} are provided, integrate them naturally to demonstrate resilience and ambition.
 
-- Refer to CV if necessary: “You will see in my CV that I have…”
+- Refer to CV if necessary: "You will see in my CV that I have…"
 
 FINAL BODY PARAGRAPH
 - Add a last note of motivation (optional but encouraged).
@@ -127,14 +122,16 @@ FINAL BODY PARAGRAPH
 
 - Provide contact details: include ${personalInfo.phone} and ${personalInfo.email}.
 
-- Close with gratitude: “Thank you for your time and consideration.”
+- Close with gratitude: "Thank you for your time and consideration."
 
 CLOSING
-- End with: “Sincerely,”
+- End with: "Sincerely,"
 
 - Leave space for signature.
 
 - Print full name: ${personalInfo.name}
+
+This should guarantee a standing out and professional cover letter.
 
 EXAMPLE VARIABLE USAGE
 - ${personalInfo.name} → Daniel A. Stevens
@@ -151,12 +148,10 @@ EXAMPLE VARIABLE USAGE
 
 - ${resume} → List of experiences and skills from the CV
 
-- ${answers} → Motivation, relevant experience, unique value, challenges, growth
-
-This should guarantee a standing out and professional cover letter.`;
+- ${answers} → Motivation, relevant experience, unique value, challenges, growth`;
 }
 
-// Hugging Face API call using OpenAI format
+// Hugging Face API call
 async function generateWithHuggingFace(prompt) {
   try {
     const response = await fetch(
@@ -172,12 +167,9 @@ async function generateWithHuggingFace(prompt) {
     );
 
     const data = await response.json();
-    // La réponse peut varier selon le modèle
-    return data[0]?.generated_text || '';
+    return data[0]?.generated_text || data.generated_text || 'Error generating cover letter';
   } catch (error) {
     console.error('Hugging Face API error:', error);
     throw new Error('Failed to generate cover letter with AI');
   }
 }
-
-module.exports = app;
