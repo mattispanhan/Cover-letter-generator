@@ -1,16 +1,14 @@
-// Vercel serverless function
 export default async function handler(req, res) {
-  // Enable CORS
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Only allow POST requests
+  // Only POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -18,10 +16,9 @@ export default async function handler(req, res) {
   try {
     const { personalInfo, receiverInfo, jobDescription, resume, preferences, answers } = req.body;
 
-    // Create prompt for AI
+    // Create prompt
     const prompt = createPrompt(personalInfo, receiverInfo, jobDescription, resume, preferences, answers);
 
-    // Call Hugging Face API
     const coverLetter = await generateWithHuggingFace(prompt);
     
     res.json({ 
